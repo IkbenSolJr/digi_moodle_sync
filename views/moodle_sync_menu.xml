@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Menu root không action để tránh lỗi reference -->
+    <menuitem id="menu_moodle_sync_root"
+              name="Moodle Sync"
+              sequence="1"/>
+
+    <!-- Menu Dashboard -->
+    <menuitem id="menu_moodle_dashboard"
+              name="Dashboard"
+              parent="menu_moodle_sync_root"
+              action="action_moodle_dashboard"
+              sequence="1"/>
+
+    <!-- Menu Đồng bộ -->
+    <menuitem id="menu_moodle_sync_now"
+              name="Đồng bộ ngay"
+              parent="menu_moodle_sync_root"
+              action="action_moodle_sync_wizard"
+              sequence="2"
+              groups="base.group_system"/>
+
+    <!-- Menu Khóa học -->
+    <menuitem id="menu_moodle_courses"
+              name="Khóa học"
+              parent="menu_moodle_sync_root"
+              action="action_moodle_course"
+              sequence="3"/>
+
+    <!-- Menu Khóa học của người dùng -->
+    <menuitem id="menu_moodle_user_courses"
+              name="Khóa học của người dùng"
+              parent="menu_moodle_sync_root"
+              action="action_moodle_user_course"
+              sequence="4"/>
+
+    <!-- Menu Điểm số -->
+    <menuitem id="menu_moodle_user_grades"
+              name="Điểm số"
+              parent="menu_moodle_sync_root"
+              action="action_moodle_user_grade"
+              sequence="5"/>
+
+    <!-- Menu Người dùng -->
+    <menuitem id="menu_moodle_users"
+              name="Người dùng"
+              parent="menu_moodle_sync_root"
+              action="action_moodle_user"
+              sequence="6"/>
+
+    <!-- Các menu khác sẽ được thêm trong các file view tương ứng -->
+</odoo>

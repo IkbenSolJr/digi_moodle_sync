@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Dashboard -->
+    <record id="moodle_dashboard_view" model="ir.ui.view">
+        <field name="name">moodle.dashboard.form</field>
+        <field name="model">moodle.dashboard</field>
+        <field name="arch" type="xml">
+            <form string="Moodle Dashboard" create="false" edit="false" delete="false">
+                <div class="o_dashboard_header mb-3">
+                    <div class="float-end">
+                        <button name="%(action_moodle_sync_wizard)d"
+                                type="action"
+                                class="btn btn-primary"
+                                string="Đồng bộ ngay"/>
+                    </div>
+                    <h1>Bảng điều khiển Moodle Sync</h1>
+                    <h5 class="text-muted">Đồng bộ lần cuối: <field name="last_sync_date" readonly="1"/></h5>
+                </div>
+                <!-- Các cards thống kê -->
+                <div class="row">
+                    <div class="col-xl-3 col-lg-6 col-12 o_dashboard_card">
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col">
+                                        <h5 class="card-title">Khóa học</h5>
+                                        <h2><field name="courses_count" widget="statinfo"/></h2>
+                                    </div>
+                                    <div class="col-auto">
+                                        <i class="fa fa-graduation-cap fa-3x text-primary"/>
+                                    </div>
+                                </div>
+                                <button name="action_view_courses" type="object" class="btn btn-sm btn-link">Xem danh sách</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-xl-3 col-lg-6 col-12 o_dashboard_card">
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col">
+                                        <h5 class="card-title">Học viên</h5>
+                                        <h2><field name="users_count" widget="statinfo"/></h2>
+                                    </div>
+                                    <div class="col-auto">
+                                        <i class="fa fa-users fa-3x text-success"/>
+                                    </div>
+                                </div>
+                                <button name="action_view_users" type="object" class="btn btn-sm btn-link">Xem danh sách</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-xl-3 col-lg-6 col-12 o_dashboard_card">
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col">
+                                        <h5 class="card-title">Đăng ký</h5>
+                                        <h2><field name="enrollments_count" widget="statinfo"/></h2>
+                                    </div>
+                                    <div class="col-auto">
+                                        <i class="fa fa-bookmark fa-3x text-warning"/>
+                                    </div>
+                                </div>
+                                <button name="action_view_enrollments" type="object" class="btn btn-sm btn-link">Xem danh sách</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-xl-3 col-lg-6 col-12 o_dashboard_card">
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col">
+                                        <h5 class="card-title">Điểm</h5>
+                                        <h2><field name="grades_count" widget="statinfo"/></h2>
+                                    </div>
+                                    <div class="col-auto">
+                                        <i class="fa fa-star fa-3x text-danger"/>
+                                    </div>
+                                </div>
+                                <button name="action_view_grades" type="object" class="btn btn-sm btn-link">Xem điểm</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Biểu đồ -->
+                <div class="row">
+                    <div class="col-lg-6">
+                        <div class="card mb-3">
+                            <div class="card-header"><h5 class="card-title">Phân phối học viên</h5></div>
+                            <div class="card-body"><field name="enrollments_chart" widget="chart"/></div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="card mb-3">
+                            <div class="card-header"><h5 class="card-title">Phân phối điểm</h5></div>
+                            <div class="card-body"><field name="grades_chart" widget="chart"/></div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Kết nối -->
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card mb-3">
+                            <div class="card-header"><h5 class="card-title">Thông tin kết nối Moodle</h5></div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-lg-3">
+                                        <span class="o_form_label">URL Moodle:</span>
+                                    </div>
+                                    <div class="col-lg-9">
+                                        <field name="moodle_url" readonly="1"/>
+                                    </div>
+                                </div>
+                                <div class="row mt-2">
+                                    <div class="col-lg-3">
+                                        <span class="o_form_label">Trạng thái:</span>
+                                    </div>
+                                    <div class="col-lg-9">
+                                        <field name="connection_state" readonly="1" widget="label_selection"
+                                               options="{'classes': {'connected':'success','disconnected':'danger'}}"/>
+                                    </div>
+                                </div>
+                                <div class="row mt-4">
+                                    <div class="col-12">
+                                        <button name="action_test_connection" type="object" class="btn btn-info">Kiểm tra kết nối</button>
+                                        <button name="%(action_moodle_sync_configuration)d" type="action" class="btn btn-secondary ml-2">Cấu hình</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_moodle_dashboard" model="ir.actions.act_window">
+        <field name="name">Moodle Dashboard</field>
+        <field name="res_model">moodle.dashboard</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="moodle_dashboard_view"/>
+        <field name="target">current</field>
+    </record>
+</odoo>

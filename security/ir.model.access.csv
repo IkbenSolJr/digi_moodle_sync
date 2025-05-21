@@ -1,0 +1,11 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_moodle_course_user,Moodle Course: user,digi_moodle_sync.model_moodle_course,digi_moodle_sync.group_digi_moodle_sync_user,1,0,0,0
+access_moodle_course_manager,Moodle Course: manager,digi_moodle_sync.model_moodle_course,digi_moodle_sync.group_digi_moodle_sync_manager,1,1,1,1
+access_moodle_user_user,Moodle User: user,digi_moodle_sync.model_moodle_user,digi_moodle_sync.group_digi_moodle_sync_user,1,0,0,0
+access_moodle_user_manager,Moodle User: manager,digi_moodle_sync.model_moodle_user,digi_moodle_sync.group_digi_moodle_sync_manager,1,1,1,1
+access_moodle_user_course_user,Enrollment: user,digi_moodle_sync.model_moodle_user_course,digi_moodle_sync.group_digi_moodle_sync_user,1,0,0,0
+access_moodle_user_course_manager,Enrollment: manager,digi_moodle_sync.model_moodle_user_course,digi_moodle_sync.group_digi_moodle_sync_manager,1,1,1,1
+access_moodle_user_grade_user,Grade: user,digi_moodle_sync.model_moodle_user_grade,digi_moodle_sync.group_digi_moodle_sync_user,1,0,0,0
+access_moodle_user_grade_manager,Grade: manager,digi_moodle_sync.model_moodle_user_grade,digi_moodle_sync.group_digi_moodle_sync_manager,1,1,1,1
+access_moodle_sync_wizard_user,Sync Wizard: user,digi_moodle_sync.model_moodle_sync_wizard,digi_moodle_sync.group_digi_moodle_sync_user,1,0,0,0
+access_moodle_sync_wizard_manager,Sync Wizard: manager,digi_moodle_sync.model_moodle_sync_wizard,digi_moodle_sync.group_digi_moodle_sync_manager,1,1,1,1

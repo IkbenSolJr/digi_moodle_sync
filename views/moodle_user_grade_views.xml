@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Tree View -->
+    <record id="view_moodle_user_grade_tree" model="ir.ui.view">
+        <field name="name">moodle.user.grade.tree</field>
+        <field name="model">moodle.user.grade</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="moodle_user_id"/>
+                <field name="moodle_course_id"/>
+                <field name="item_name"/>
+                <field name="item_type"/>
+                <field name="grade"/>
+                <field name="grade_date"/>
+                <field name="last_sync_date"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Form View -->
+    <record id="view_moodle_user_grade_form" model="ir.ui.view">
+        <field name="name">moodle.user.grade.form</field>
+        <field name="model">moodle.user.grade</field>
+        <field name="arch" type="xml">
+            <form string="Điểm số">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="moodle_user_id"/>
+                            <field name="moodle_course_id"/>
+                            <field name="moodle_item_id"/>
+                            <field name="item_name"/>
+                        </group>
+                        <group>
+                            <field name="item_type"/>
+                            <field name="item_module"/>
+                            <field name="grade"/>
+                            <field name="grade_date"/>
+                            <field name="last_sync_date"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Search View -->
+    <record id="view_moodle_user_grade_search" model="ir.ui.view">
+        <field name="name">moodle.user.grade.search</field>
+        <field name="model">moodle.user.grade</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="moodle_user_id"/>
+                <field name="moodle_course_id"/>
+                <field name="item_name"/>
+                <field name="item_type"/>
+                <field name="grade"/>
+                <group expand="0" string="Group By">
+                    <filter string="User" name="group_user" context="{'group_by': 'moodle_user_id'}"/>
+                    <filter string="Course" name="group_course" context="{'group_by': 'moodle_course_id'}"/>
+                    <filter string="Item Type" name="group_type" context="{'group_by': 'item_type'}"/>
+                    <filter string="Grade Date" name="group_date" context="{'group_by': 'grade_date'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action -->
+    <record id="action_moodle_user_grade" model="ir.actions.act_window">
+        <field name="name">Điểm số</field>
+        <field name="res_model">moodle.user.grade</field>
+        <field name="view_mode">tree,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Chưa có dữ liệu điểm số
+            </p>
+            <p>
+                Sử dụng chức năng "Đồng bộ ngay" để lấy điểm số từ Moodle
+            </p>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_moodle" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.moodle.sync</field>
+        <field name="model">res.config.settings</field>
+        <field name="priority" eval="70"/>
+        <field name="arch" type="xml">
+            <form string="Cấu hình Moodle Sync" class="oe_form_configuration">
+                <header>
+                    <button string="Lưu" type="object" name="execute" class="oe_highlight"/>
+                    <button string="Hủy" type="object" name="cancel" class="oe_link"/>
+                </header>
+                <sheet>
+                    <div class="app_settings_block">
+                        <h2>Cấu hình Moodle</h2>
+                        <div class="row mt16 o_settings_container">
+                            <div class="col-12 col-lg-6 o_setting_box">
+                                <div class="o_setting_right_pane">
+                                    <span class="o_form_label">Thông tin kết nối</span>
+                                    <div class="text-muted">Cấu hình thông tin kết nối đến Moodle</div>
+                                    <div class="content-group">
+                                        <div class="mt16 row">
+                                            <label for="moodle_url" class="col-lg-3 o_light_label">URL Moodle</label>
+                                            <field name="moodle_url" placeholder="https://moodle.example.com"/>
+                                        </div>
+                                        <div class="mt16 row">
+                                            <label for="moodle_token" class="col-lg-3 o_light_label">Token API</label>
+                                            <field name="moodle_token" password="True"/>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_moodle_sync_configuration" model="ir.actions.act_window">
+        <field name="name">Cấu hình Moodle Sync</field>
+        <field name="res_model">res.config.settings</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="res_config_settings_view_form_moodle"/>
+        <field name="target">inline</field>
+    </record>
+
+    <menuitem id="menu_moodle_sync_config"
+          name="Cấu hình"
+          action="action_moodle_sync_configuration"
+          groups="base.group_system"
+          sequence="99"/>
+</odoo>

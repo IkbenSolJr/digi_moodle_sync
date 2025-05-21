@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="demo_course_1" model="moodle.course">
+            <field name="name">Khóa học mẫu 1</field>
+            <field name="shortname">KHM1</field>
+            <field name="moodle_id">1001</field>
+        </record>
+        
+        <record id="demo_course_2" model="moodle.course">
+            <field name="name">Khóa học mẫu 2</field>
+            <field name="shortname">KHM2</field>
+            <field name="moodle_id">1002</field>
+        </record>
+    </data>
+</odoo> 

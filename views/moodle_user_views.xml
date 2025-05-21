@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Tree View -->
+    <record id="view_moodle_user_tree" model="ir.ui.view">
+        <field name="name">moodle.user.tree</field>
+        <field name="model">moodle.user</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="name"/>
+                <field name="login"/>
+                <field name="email"/>
+                <field name="moodle_id"/>
+                <field name="odoo_user_id"/>
+                <field name="last_sync_date"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Form View -->
+    <record id="view_moodle_user_form" model="ir.ui.view">
+        <field name="name">moodle.user.form</field>
+        <field name="model">moodle.user</field>
+        <field name="arch" type="xml">
+            <form string="Người dùng Moodle">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="login"/>
+                            <field name="email"/>
+                        </group>
+                        <group>
+                            <field name="moodle_id"/>
+                            <field name="odoo_user_id"/>
+                            <field name="last_sync_date"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Search View -->
+    <record id="view_moodle_user_search" model="ir.ui.view">
+        <field name="name">moodle.user.search</field>
+        <field name="model">moodle.user</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="login"/>
+                <field name="email"/>
+                <field name="moodle_id"/>
+                <field name="odoo_user_id"/>
+                <group expand="0" string="Group By">
+                    <filter string="Odoo User" name="group_odoo_user" context="{'group_by': 'odoo_user_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action -->
+    <record id="action_moodle_user" model="ir.actions.act_window">
+        <field name="name">Người dùng Moodle</field>
+        <field name="res_model">moodle.user</field>
+        <field name="view_mode">tree,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Chưa có người dùng nào được đồng bộ từ Moodle
+            </p>
+            <p>
+                Sử dụng chức năng "Đồng bộ ngay" để lấy danh sách người dùng từ Moodle
+            </p>
+        </field>
+    </record>
+</odoo>

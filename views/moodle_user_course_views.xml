@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Tree View -->
+    <record id="view_moodle_user_course_tree" model="ir.ui.view">
+        <field name="name">moodle.user.course.tree</field>
+        <field name="model">moodle.user.course</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="user_id"/>
+                <field name="course_name"/>
+                <field name="course_shortname"/>
+                <field name="enrol_date"/>
+                <field name="completion_state"/>
+                <field name="progress_percent" widget="percentage"/>
+                <field name="last_sync_date"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Form View -->
+    <record id="view_moodle_user_course_form" model="ir.ui.view">
+        <field name="name">moodle.user.course.form</field>
+        <field name="model">moodle.user.course</field>
+        <field name="arch" type="xml">
+            <form string="Khóa học của người dùng">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="user_id"/>
+                            <field name="course_name"/>
+                            <field name="course_shortname"/>
+                            <field name="moodle_course_id"/>
+                        </group>
+                        <group>
+                            <field name="enrol_date"/>
+                            <field name="completion_state"/>
+                            <field name="progress_percent" widget="percentage"/>
+                            <field name="last_sync_date"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Search View -->
+    <record id="view_moodle_user_course_search" model="ir.ui.view">
+        <field name="name">moodle.user.course.search</field>
+        <field name="model">moodle.user.course</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="user_id"/>
+                <field name="course_name"/>
+                <field name="course_shortname"/>
+                <field name="moodle_course_id"/>
+                <filter string="Completed" name="completed" domain="[('completion_state', '=', 'completed')]"/>
+                <filter string="In Progress" name="in_progress" domain="[('completion_state', '=', 'in_progress')]"/>
+                <filter string="Not Started" name="not_started" domain="[('completion_state', '=', 'not_started')]"/>
+                <group expand="0" string="Group By">
+                    <filter string="User" name="group_user" context="{'group_by': 'user_id'}"/>
+                    <filter string="Status" name="group_state" context="{'group_by': 'completion_state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action -->
+    <record id="action_moodle_user_course" model="ir.actions.act_window">
+        <field name="name">Khóa học của người dùng</field>
+        <field name="res_model">moodle.user.course</field>
+        <field name="view_mode">tree,form</field>
+        <field name="context">{'search_default_in_progress': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Chưa có dữ liệu khóa học của người dùng
+            </p>
+            <p>
+                Sử dụng chức năng "Đồng bộ ngay" để lấy thông tin từ Moodle
+            </p>
+        </field>
+    </record>
+</odoo>

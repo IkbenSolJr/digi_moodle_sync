@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Nhóm người dùng bình thường chỉ có quyền xem -->
+    <record id="group_digi_moodle_sync_user" model="res.groups">
+        <field name="name">Moodle Sync / User</field>
+        <field name="category_id" ref="base.module_category_hidden"/>
+    </record>
+    <!-- Nhóm Manager thừa hưởng quyền của User và có thêm quyền tạo sửa xóa -->
+    <record id="group_digi_moodle_sync_manager" model="res.groups">
+        <field name="name">Moodle Sync / Manager</field>
+        <field name="category_id" ref="base.module_category_hidden"/>
+        <field name="implied_ids" eval="[(4, ref('digi_moodle_sync.group_digi_moodle_sync_user'))]"/>
+        <field name="users" eval="[(4, ref('base.user_root')), (4, ref('base.user_admin'))]"/>
+    </record>
+</odoo>
