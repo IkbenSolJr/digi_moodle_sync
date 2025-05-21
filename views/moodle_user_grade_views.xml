@@ -11,7 +11,8 @@
                 <field name="item_name"/>
                 <field name="item_type"/>
                 <field name="grade"/>
-                <field name="grade_date"/>
+                <field name="is_null_grade"/>
+                <field name="graded_date"/>
                 <field name="last_sync_date"/>
             </tree>
         </field>
@@ -35,7 +36,8 @@
                             <field name="item_type"/>
                             <field name="item_module"/>
                             <field name="grade"/>
-                            <field name="grade_date"/>
+                            <field name="is_null_grade"/>
+                            <field name="graded_date"/>
                             <field name="last_sync_date"/>
                         </group>
                     </group>
@@ -55,11 +57,13 @@
                 <field name="item_name"/>
                 <field name="item_type"/>
                 <field name="grade"/>
+                <filter string="Null Grades" name="null_grades" domain="[('is_null_grade', '=', True)]"/>
                 <group expand="0" string="Group By">
                     <filter string="User" name="group_user" context="{'group_by': 'moodle_user_id'}"/>
                     <filter string="Course" name="group_course" context="{'group_by': 'moodle_course_id'}"/>
                     <filter string="Item Type" name="group_type" context="{'group_by': 'item_type'}"/>
-                    <filter string="Grade Date" name="group_date" context="{'group_by': 'grade_date'}"/>
+                    <filter string="Grade Date" name="group_date" context="{'group_by': 'graded_date'}"/>
+                    <filter string="Is Null Grade" name="group_null" context="{'group_by': 'is_null_grade'}"/>
                 </group>
             </search>
         </field>

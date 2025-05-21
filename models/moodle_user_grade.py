@@ -9,14 +9,16 @@ class MoodleUserGrade(models.Model):
     moodle_user_id    = fields.Many2one(
         'moodle.user', "Moodle User", required=True, ondelete='cascade', index=True)
     moodle_course_id  = fields.Many2one(
-        'moodle.user.course', "Moodle Course", required=True, ondelete='cascade')
+        'moodle.user.course', "Moodle Course", required=True, ondelete='cascade', index=True)
     moodle_item_id    = fields.Integer(
         "Moodle Item ID", required=True, index=True)
-    item_name         = fields.Char("Item Name", required=True)
-    item_type         = fields.Char("Item Type", required=True)
-    item_module       = fields.Char("Item Module")
+    item_name         = fields.Char("Item Name", index=True)
+    item_type         = fields.Char("Item Type", index=True)
+    item_module       = fields.Char("Item Module", index=True)
     grade             = fields.Float("Grade", required=True)
-    grade_date        = fields.Datetime("Grade Date")
+    graded_date       = fields.Datetime("Graded Date")
+    is_null_grade     = fields.Boolean("Is Null Grade", default=False,
+                                     help="True if the original grade was null")
     last_sync_date    = fields.Datetime("Last Synced")
 
     _sql_constraints = [
