@@ -1,19 +1,21 @@
 {
-    "name": "Moodle Sync",
+    "name": "Digi Moodle Sync",
     # Bản dành cho Odoo 15, theo chuẩn versioning 15.0.x.y.z
     "version": "15.0.1.0.0",
-    "summary": "Đồng bộ dữ liệu giữa Odoo 15 và Moodle",
     "category": "Education",
-    "author": "Sol a.k.a Thien Hoang",
-    "website": "https://dsseducation.com",
+    "summary": "Synchronize data with Moodle LMS",
+    "sequence": 1,
+    "author": "Digital Wave Solution",
+    "website": "https://digitalwave.vn",
     "license": "LGPL-3",
     # Thêm web vì module có controller/http
     "depends": [
         "base",
         "web",
+        "mail",
     ],
-     "data": [
-         # 1. Security, access, data mẫu
+    "data": [
+        # 1. Security, access, data mẫu
         "security/moodle_sync_security.xml",
         "security/ir.model.access.csv",
         "data/moodle_course_data.xml",
@@ -29,10 +31,15 @@
 
         # 3. Menu cuối cùng (tham chiếu tất cả action trên)
         "views/moodle_sync_menu.xml",
+
+        # 4. New views
+        "views/moodle_sync_views.xml",
     ],
-    # Đường dẫn relative, không có dấu “/” ở đầu
+    # Đường dẫn relative, không có dấu "
     "icon": "static/description/icon.png",
     "images": ["static/description/banner.png"],
+    "demo": [],
     "installable": True,
-    "application": True,
+    "application": False,
+    "auto_install": False,
 }

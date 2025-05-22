@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Activity Progress Views -->
+    <record id="view_moodle_activity_progress_tree" model="ir.ui.view">
+        <field name="name">moodle.activity.progress.tree</field>
+        <field name="model">moodle.activity.progress</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="activity_name"/>
+                <field name="userid"/>
+                <field name="courseid"/>
+                <field name="completionstate"/>
+                <field name="timemodified"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_moodle_activity_progress_form" model="ir.ui.view">
+        <field name="name">moodle.activity.progress.form</field>
+        <field name="model">moodle.activity.progress</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="activity_name"/>
+                        <field name="userid"/>
+                        <field name="courseid"/>
+                        <field name="cmid"/>
+                        <field name="completionstate"/>
+                        <field name="timemodified"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Assignment Views -->
+    <record id="view_moodle_assignment_tree" model="ir.ui.view">
+        <field name="name">moodle.assignment.tree</field>
+        <field name="model">moodle.assignment</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="name"/>
+                <field name="course_id"/>
+                <field name="duedate"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_moodle_assignment_form" model="ir.ui.view">
+        <field name="name">moodle.assignment.form</field>
+        <field name="model">moodle.assignment</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="course_id"/>
+                        <field name="duedate"/>
+                        <field name="moodle_id"/>
+                    </group>
+                    <notebook>
+                        <page string="Submissions">
+                            <field name="submission_ids"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Assignment Submission Views -->
+    <record id="view_moodle_assignment_submission_tree" model="ir.ui.view">
+        <field name="name">moodle.assignment.submission.tree</field>
+        <field name="model">moodle.assignment.submission</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="assignment_id"/>
+                <field name="user_id"/>
+                <field name="status"/>
+                <field name="grade"/>
+                <field name="timemodified"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_moodle_assignment_submission_form" model="ir.ui.view">
+        <field name="name">moodle.assignment.submission.form</field>
+        <field name="model">moodle.assignment.submission</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="assignment_id"/>
+                        <field name="user_id"/>
+                        <field name="status"/>
+                        <field name="grade"/>
+                        <field name="timemodified"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Course Teacher Views -->
+    <record id="view_moodle_course_teacher_tree" model="ir.ui.view">
+        <field name="name">moodle.course.teacher.tree</field>
+        <field name="model">moodle.course.teacher</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="fullname"/>
+                <field name="course_id"/>
+                <field name="email"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_moodle_course_teacher_form" model="ir.ui.view">
+        <field name="name">moodle.course.teacher.form</field>
+        <field name="model">moodle.course.teacher</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="user_id"/>
+                        <field name="course_id"/>
+                        <field name="fullname"/>
+                        <field name="email"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Sync Wizard Form -->
+    <record id="view_moodle_sync_wizard_form" model="ir.ui.view">
+        <field name="name">moodle.sync.wizard.form</field>
+        <field name="model">moodle.sync.wizard</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="sync_type" widget="radio"/>
+                    </group>
+                    <footer>
+                        <button string="Sync" name="action_sync" type="object" class="btn-primary"/>
+                        <button string="Cancel" class="btn-secondary" special="cancel"/>
+                    </footer>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Menu Actions -->
+    <record id="action_moodle_activity_progress" model="ir.actions.act_window">
+        <field name="name">Activity Progress</field>
+        <field name="res_model">moodle.activity.progress</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <record id="action_moodle_assignment" model="ir.actions.act_window">
+        <field name="name">Assignments</field>
+        <field name="res_model">moodle.assignment</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <record id="action_moodle_assignment_submission" model="ir.actions.act_window">
+        <field name="name">Assignment Submissions</field>
+        <field name="res_model">moodle.assignment.submission</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <record id="action_moodle_course_teacher" model="ir.actions.act_window">
+        <field name="name">Course Teachers</field>
+        <field name="res_model">moodle.course.teacher</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <record id="action_moodle_sync_wizard" model="ir.actions.act_window">
+        <field name="name">Sync with Moodle</field>
+        <field name="res_model">moodle.sync.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <!-- Menu Items -->
+    <!-- Main menu -->
+    <menuitem id="menu_moodle_sync_root"
+              name="Moodle Sync"
+              web_icon="digi_moodle_sync,static/description/icon.png"
+              sequence="10"/>
+
+    <!-- Data menus -->
+    <menuitem id="menu_moodle_activity_progress"
+              name="Activity Progress"
+              parent="menu_moodle_sync_root"
+              action="action_moodle_activity_progress"
+              sequence="10"/>
+
+    <menuitem id="menu_moodle_assignment"
+              name="Assignments"
+              parent="menu_moodle_sync_root"
+              action="action_moodle_assignment"
+              sequence="20"/>
+
+    <menuitem id="menu_moodle_assignment_submission"
+              name="Assignment Submissions"
+              parent="menu_moodle_sync_root"
+              action="action_moodle_assignment_submission"
+              sequence="30"/>
+
+    <menuitem id="menu_moodle_course_teacher"
+              name="Course Teachers"
+              parent="menu_moodle_sync_root"
+              action="action_moodle_course_teacher"
+              sequence="40"/>
+
+    <!-- Sync menu -->
+    <menuitem id="menu_moodle_sync_wizard"
+              name="Sync with Moodle"
+              parent="menu_moodle_sync_root"
+              action="action_moodle_sync_wizard"
+              sequence="100"/>
+</odoo> 

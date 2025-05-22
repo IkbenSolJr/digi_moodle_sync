@@ -9,302 +9,227 @@ _logger = logging.getLogger(__name__)
 
 class MoodleSyncWizard(models.TransientModel):
     _name = 'moodle.sync.wizard'
-    _description = 'Wizard đồng bộ từ Moodle'
+    _description = 'Moodle Sync Wizard'
 
-    sync_courses       = fields.Boolean('Khóa học', default=True)
-    sync_users         = fields.Boolean('Người dùng', default=True)
-    sync_user_courses  = fields.Boolean('Khóa học của người dùng', default=True)
-    sync_grades        = fields.Boolean('Điểm số', default=True)
+    sync_type = fields.Selection([
+        ('activity', 'Activity Progress'),
+        ('assignment', 'Assignments'),
+        ('submission', 'Assignment Submissions'),
+        ('teacher', 'Course Teachers'),
+        ('all', 'All Data')
+    ], string='Sync Type', default='all', required=True)
 
-    def action_sync(self):
-        self.ensure_one()
-        config     = self.env['ir.config_parameter'].sudo()
-        moodle_url = config.get_param('digi_moodle_sync.moodle_url') or ''
-        token      = config.get_param('digi_moodle_sync.token') or ''
-        if not moodle_url or not token:
-            raise UserError(_('Vui lòng cấu hình URL và Token Moodle'))
-
-        msg = ""
-        if self.sync_courses:
-            n = self.sync_courses_data(moodle_url, token)
-            msg += _('Đã đồng bộ %s khóa học\n') % n
-        if self.sync_users:
-            m = self.sync_users_data(moodle_url, token)
-            msg += _('Đã đồng bộ %s người dùng\n') % m
-        if self.sync_user_courses:
-            p = self.sync_user_courses_data(moodle_url, token)
-            msg += _('Đã đồng bộ %s user-course\n') % p
-        if self.sync_grades:
-            q = self.sync_grades_data(moodle_url, token)
-            msg += _('Đã đồng bộ %s điểm số\n') % q
-
+    def _get_moodle_config(self):
+        params = self.env['ir.config_parameter'].sudo()
         return {
-            'type':'ir.actions.client','tag':'display_notification',
-            'params':{'title':_('Hoàn tất'),'message':msg,'type':'success'}
+            'token': params.get_param('moodle.wstoken'),
+            'url': params.get_param('moodle.url')
         }
 
-    def sync_courses_data(self, url, token, timeout=30):
-        """Đồng bộ danh sách khóa học từ Moodle"""
-        try:
-            # Gọi API Moodle để lấy danh sách khóa học
-            params = {'wstoken': token, 'wsfunction': 'core_course_get_courses',
-                     'moodlewsrestformat': 'json'}
-            response = requests.get(f"{url}/webservice/rest/server.php",
-                                  params=params, timeout=timeout)
-            courses = response.json()
-            
-            # Tạo/cập nhật khóa học trong Odoo
-            Course = self.env['moodle.course'].sudo()
-            count = 0
-            for course in courses:
-                vals = {
-                    'name': course.get('fullname'),
-                    'shortname': course.get('shortname'),
-                    'moodle_id': course.get('id'),
-                    'last_sync_date': fields.Datetime.now(),
+    def action_sync(self):
+        config = self._get_moodle_config()
+        if not config['token'] or not config['url']:
+            return {
+                'type': 'ir.actions.client',
+                'tag': 'display_notification',
+                'params': {
+                    'title': 'Error',
+                    'message': 'Moodle configuration is missing. Please configure token and URL.',
+                    'type': 'danger',
+                    'sticky': False,
                 }
-                course_rec = Course.search([('moodle_id','=',course.get('id'))], limit=1)
-                if course_rec:
-                    course_rec.write(vals)
-                else:
-                    Course.create(vals)
-                count += 1
-            return count
-        except Exception as e:
-            raise UserError(_('Lỗi khi đồng bộ khóa học: %s') % str(e))
+            }
 
-    def sync_users_data(self, url, token, timeout=30):
-        """Đồng bộ danh sách người dùng từ Moodle"""
-        try:
-            # Gọi API Moodle để lấy danh sách người dùng
-            params = {'wstoken': token, 'wsfunction': 'core_user_get_users',
-                     'moodlewsrestformat': 'json', 'criteria[0][key]': 'email',
-                     'criteria[0][value]': '%'}  # Lấy tất cả users
-            response = requests.get(f"{url}/webservice/rest/server.php",
-                                  params=params, timeout=timeout)
-            users = response.json().get('users', [])
-            
-            # Tạo/cập nhật người dùng trong Odoo
-            User = self.env['moodle.user'].sudo()
-            count = 0
+        if self.sync_type in ['activity', 'all']:
+            self._sync_activities(config)
+        if self.sync_type in ['assignment', 'all']:
+            self._sync_assignments(config)
+        if self.sync_type in ['submission', 'all']:
+            self._sync_submissions(config)
+        if self.sync_type in ['teacher', 'all']:
+            self._sync_teachers(config)
+
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': 'Success',
+                'message': 'Data synchronized successfully',
+                'type': 'success',
+                'sticky': False,
+            }
+        }
+
+    def _sync_activities(self, config):
+        courses = self.env['moodle.course'].search([])
+        users = self.env['res.users'].search([('moodle_id', '!=', False)])
+
+        for course in courses:
             for user in users:
-                vals = {
-                    'name': user.get('fullname'),
-                    'login': user.get('username'),
-                    'email': user.get('email'),
-                    'moodle_id': user.get('id'),
-                    'last_sync_date': fields.Datetime.now(),
+                params = {
+                    'wstoken': config['token'],
+                    'wsfunction': 'core_completion_get_activities_completion_status',
+                    'courseid': course.moodle_id,
+                    'userid': user.moodle_id,
+                    'moodlewsrestformat': 'json'
                 }
-                user_rec = User.search([('moodle_id','=',user.get('id'))], limit=1)
-                if user_rec:
-                    user_rec.write(vals)
-                else:
-                    User.create(vals)
-                count += 1
-            return count
-        except Exception as e:
-            raise UserError(_('Lỗi khi đồng bộ người dùng: %s') % str(e))
 
-    def sync_user_courses_data(self, url, token, timeout=30):
-        """Đồng bộ danh sách khóa học của người dùng từ Moodle"""
-        try:
-            # Lấy danh sách người dùng Moodle trong Odoo
-            users = self.env['moodle.user'].sudo().search([])
-            if not users:
-                return 0
+                try:
+                    response = requests.get(config['url'] + '/webservice/rest/server.php', params=params)
+                    response.raise_for_status()
+                    data = response.json()
 
-            UserCourse = self.env['moodle.user.course'].sudo()
-            count = 0
-            
-            for user in users:
-                # Gọi API Moodle để lấy khóa học của từng user
-                params = {'wstoken': token, 
-                         'wsfunction': 'core_enrol_get_users_courses',
-                         'moodlewsrestformat': 'json',
-                         'userid': user.moodle_id}
-                response = requests.get(f"{url}/webservice/rest/server.php",
-                                      params=params, timeout=timeout)
-                courses = response.json()
-                
-                for course in courses:
+                    if 'statuses' in data:
+                        for activity in data['statuses']:
+                            vals = {
+                                'userid': user.id,
+                                'courseid': course.id,
+                                'cmid': activity['cmid'],
+                                'activity_name': activity.get('activityname', ''),
+                                'completionstate': str(activity['completionstate']),
+                                'timemodified': activity.get('timemodified')
+                            }
+
+                            progress = self.env['moodle.activity.progress'].search([
+                                ('userid', '=', user.id),
+                                ('courseid', '=', course.id),
+                                ('cmid', '=', activity['cmid'])
+                            ])
+
+                            if progress:
+                                progress.write(vals)
+                            else:
+                                self.env['moodle.activity.progress'].create(vals)
+
+                except Exception as e:
+                    _logger.error(f"Error syncing progress for user {user.name} in course {course.name}: {str(e)}")
+
+    def _sync_assignments(self, config):
+        courses = self.env['moodle.course'].search([])
+        
+        for course in courses:
+            params = {
+                'wstoken': config['token'],
+                'wsfunction': 'mod_assign_get_assignments',
+                'courseids[]': course.moodle_id,
+                'moodlewsrestformat': 'json'
+            }
+
+            try:
+                response = requests.get(config['url'] + '/webservice/rest/server.php', params=params)
+                response.raise_for_status()
+                data = response.json()
+
+                if 'courses' in data:
+                    for course_data in data['courses']:
+                        for assignment in course_data.get('assignments', []):
+                            vals = {
+                                'moodle_id': assignment['id'],
+                                'name': assignment['name'],
+                                'duedate': assignment.get('duedate'),
+                                'course_id': course.id
+                            }
+
+                            assign = self.env['moodle.assignment'].search([
+                                ('moodle_id', '=', assignment['id'])
+                            ])
+
+                            if assign:
+                                assign.write(vals)
+                            else:
+                                self.env['moodle.assignment'].create(vals)
+
+            except Exception as e:
+                _logger.error(f"Error syncing assignments for course {course.name}: {str(e)}")
+
+    def _sync_submissions(self, config):
+        assignments = self.env['moodle.assignment'].search([])
+        
+        for assignment in assignments:
+            params = {
+                'wstoken': config['token'],
+                'wsfunction': 'mod_assign_get_submissions',
+                'assignmentids[]': assignment.moodle_id,
+                'moodlewsrestformat': 'json'
+            }
+
+            try:
+                response = requests.get(config['url'] + '/webservice/rest/server.php', params=params)
+                response.raise_for_status()
+                data = response.json()
+
+                if 'assignments' in data:
+                    for assign_data in data['assignments']:
+                        for submission in assign_data.get('submissions', []):
+                            user = self.env['res.users'].search([
+                                ('moodle_id', '=', submission['userid'])
+                            ])
+                            if not user:
+                                continue
+
+                            vals = {
+                                'assignment_id': assignment.id,
+                                'user_id': user.id,
+                                'status': submission['status'],
+                                'timemodified': submission.get('timemodified'),
+                                'grade': submission.get('grade')
+                            }
+
+                            sub = self.env['moodle.assignment.submission'].search([
+                                ('assignment_id', '=', assignment.id),
+                                ('user_id', '=', user.id)
+                            ])
+
+                            if sub:
+                                sub.write(vals)
+                            else:
+                                self.env['moodle.assignment.submission'].create(vals)
+
+            except Exception as e:
+                _logger.error(f"Error syncing submissions for assignment {assignment.name}: {str(e)}")
+
+    def _sync_teachers(self, config):
+        courses = self.env['moodle.course'].search([])
+        
+        for course in courses:
+            params = {
+                'wstoken': config['token'],
+                'wsfunction': 'core_enrol_get_enrolled_users',
+                'courseid': course.moodle_id,
+                'moodlewsrestformat': 'json'
+            }
+
+            try:
+                response = requests.get(config['url'] + '/webservice/rest/server.php', params=params)
+                response.raise_for_status()
+                data = response.json()
+
+                teachers = [user for user in data if any(role['roleid'] == 3 for role in user.get('roles', []))]
+
+                for teacher in teachers:
+                    user = self.env['res.users'].search([
+                        ('moodle_id', '=', teacher['id'])
+                    ])
+                    
+                    if not user:
+                        continue
+
                     vals = {
                         'user_id': user.id,
-                        'moodle_course_id': course.get('id'),
-                        'course_name': course.get('fullname'),
-                        'course_shortname': course.get('shortname'),
-                        'enrol_date': fields.Datetime.now(),  # Moodle API không trả về ngày ghi danh
-                        'completion_state': 'in_progress',
-                        'progress_percent': course.get('progress', 0.0),
-                        'last_sync_date': fields.Datetime.now(),
+                        'course_id': course.id,
+                        'fullname': teacher['fullname'],
+                        'email': teacher.get('email', '')
                     }
-                    user_course = UserCourse.search([
-                        ('user_id','=',user.id),
-                        ('moodle_course_id','=',course.get('id'))
-                    ], limit=1)
-                    if user_course:
-                        user_course.write(vals)
+
+                    teacher_record = self.env['moodle.course.teacher'].search([
+                        ('user_id', '=', user.id),
+                        ('course_id', '=', course.id)
+                    ])
+
+                    if teacher_record:
+                        teacher_record.write(vals)
                     else:
-                        UserCourse.create(vals)
-                    count += 1
-            return count
-        except Exception as e:
-            raise UserError(_('Lỗi khi đồng bộ khóa học của người dùng: %s') % str(e))
+                        self.env['moodle.course.teacher'].create(vals)
 
-    def sync_grades_data(self, url, token, timeout=30):
-        """Đồng bộ điểm số từ Moodle"""
-        try:
-            def convert_timestamp(ts):
-                """Chuyển đổi timestamp sang datetime"""
-                try:
-                    if not ts:
-                        return False
-                    # Chuyển string thành int nếu cần
-                    if isinstance(ts, str):
-                        ts = int(ts)
-                    return datetime.fromtimestamp(ts)
-                except (ValueError, TypeError):
-                    return False
-            
-            # Lấy danh sách user courses
-            user_courses = self.env['moodle.user.course'].sudo().search([])
-            if not user_courses:
-                _logger.warning('Không tìm thấy user courses nào để đồng bộ điểm')
-                return 0
-
-            Grade = self.env['moodle.user.grade'].sudo()
-            
-            # Chuẩn bị danh sách user_ids và course_ids
-            user_ids = user_courses.mapped('user_id.id')
-            course_ids = user_courses.ids
-            
-            # Lấy các bản ghi điểm hiện có
-            existing_grades = Grade.search([
-                ('moodle_user_id', 'in', user_ids),
-                ('moodle_course_id', 'in', course_ids)
-            ])
-            existing_dict = {
-                (g.moodle_user_id.id, g.moodle_course_id.id, g.moodle_item_id): g 
-                for g in existing_grades
-            }
-            
-            # Chuẩn bị lists cho batch processing
-            grades_to_create = []
-            grades_to_update = Grade.browse()
-            update_vals_list = []
-            count = 0
-            
-            for uc in user_courses:
-                try:
-                    if not uc.user_id or not uc.user_id.moodle_id:
-                        _logger.error('User course %s thiếu user_id hoặc moodle_id', uc.id)
-                        continue
-                    if not uc.moodle_course_id:
-                        _logger.error('User course %s thiếu moodle_course_id', uc.id)
-                        continue
-                        
-                    # Gọi API Moodle để lấy điểm số
-                    params = {'wstoken': token,
-                             'wsfunction': 'gradereport_user_get_grade_items',
-                             'moodlewsrestformat': 'json',
-                             'courseid': uc.moodle_course_id,
-                             'userid': uc.user_id.moodle_id}
-                    
-                    response = requests.get(f"{url}/webservice/rest/server.php",
-                                          params=params, timeout=timeout)
-                    
-                    try:
-                        data = response.json()
-                    except Exception as e:
-                        _logger.error('Lỗi parse JSON response: %s', str(e))
-                        continue
-                    
-                    if 'exception' in data:
-                        _logger.error('Lỗi API Moodle: %s', data.get('message', ''))
-                        continue
-
-                    usergrades = data.get('usergrades', [])
-                    if not usergrades:
-                        _logger.info('Không có dữ liệu điểm cho user course %s', uc.id)
-                        continue
-
-                    for usergrade in usergrades:
-                        grade_items = usergrade.get('gradeitems', [])
-                        _logger.info('Tìm thấy %d grade items cho user course %s', 
-                                   len(grade_items), uc.id)
-                        
-                        for item in grade_items:
-                            try:
-                                grade_raw = item.get('graderaw')
-                                is_null_grade = grade_raw is None
-                                
-                                if is_null_grade:
-                                    _logger.info('Null grade detected for item %s, creating with 0.0', 
-                                               item.get('itemname') or 'Unknown')
-                                    grade_value = 0.0
-                                else:
-                                    grade_value = float(grade_raw)
-                                
-                                # Chuyển đổi timestamp sang datetime
-                                graded_date = convert_timestamp(item.get('gradedategraded'))
-                                if graded_date:
-                                    _logger.info('Converted timestamp %s to datetime %s', 
-                                               item.get('gradedategraded'), graded_date)
-                                    
-                                vals = {
-                                    'moodle_user_id': uc.user_id.id,
-                                    'moodle_course_id': uc.id,
-                                    'moodle_item_id': item.get('id'),
-                                    'item_name': item.get('itemname') or f"Item {item.get('id')}",
-                                    'item_type': item.get('itemtype') or 'unknown',
-                                    'item_module': item.get('itemmodule'),
-                                    'grade': grade_value,
-                                    'is_null_grade': is_null_grade,
-                                    'graded_date': graded_date,
-                                    'last_sync_date': fields.Datetime.now(),
-                                }
-                                
-                                key = (uc.user_id.id, uc.id, item.get('id'))
-                                existing = existing_dict.get(key)
-                                
-                                if existing:
-                                    grades_to_update |= existing
-                                    update_vals_list.append(vals)
-                                    _logger.info('Cập nhật điểm %s: %s (null: %s)', 
-                                               vals['item_name'], grade_value, is_null_grade)
-                                else:
-                                    grades_to_create.append(vals)
-                                    _logger.info('Tạo mới điểm %s: %s (null: %s)', 
-                                               vals['item_name'], grade_value, is_null_grade)
-                                count += 1
-                            except (ValueError, TypeError) as e:
-                                _logger.error('Lỗi xử lý điểm số: %s - Item data: %s', str(e), item)
-                                continue
-                except Exception as e:
-                    _logger.error('Lỗi khi đồng bộ điểm cho user course %s: %s',
-                                uc.id, str(e))
-                    continue
-            
-            # Batch create
-            if grades_to_create:
-                try:
-                    Grade.create(grades_to_create)
-                    _logger.info('Đã tạo mới %d bản ghi điểm', len(grades_to_create))
-                except Exception as e:
-                    _logger.error('Lỗi khi tạo mới điểm số: %s', str(e), exc_info=True)
-                    self.env.cr.rollback()
-            
-            # Batch update
-            if grades_to_update:
-                try:
-                    for grade, vals in zip(grades_to_update, update_vals_list):
-                        grade.write(vals)
-                    _logger.info('Đã cập nhật %d bản ghi điểm', len(grades_to_update))
-                except Exception as e:
-                    _logger.error('Lỗi khi cập nhật điểm số: %s', str(e), exc_info=True)
-                    self.env.cr.rollback()
-                    
-            _logger.info('Hoàn thành đồng bộ điểm - Tổng số: %d', count)
-            return count
-        except Exception as e:
-            _logger.error('Lỗi tổng thể khi đồng bộ điểm số: %s', str(e))
-            raise UserError(_('Lỗi khi đồng bộ điểm số: %s') % str(e))
+            except Exception as e:
+                _logger.error(f"Error syncing teachers for course {course.name}: {str(e)}")
