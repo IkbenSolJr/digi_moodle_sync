@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# PyCharm
+.idea/
+
+# VS Code
+.vscode/
+
+# Odoo
+*.log
+.settings/
+.project
+.pydevproject
+
+# Environment
+.env
+venv/
+ENV/
+
+# Database
+*.sqlite3
+*.db
+
+# System Files
+.DS_Store
+Thumbs.db 
