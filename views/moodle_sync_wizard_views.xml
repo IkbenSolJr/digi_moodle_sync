@@ -5,18 +5,11 @@
         <field name="model">moodle.sync.wizard</field>
         <field name="arch" type="xml">
             <form string="Đồng bộ dữ liệu Moodle">
-                <p class="oe_grey">
-                    Công cụ này sẽ đồng bộ dữ liệu từ Moodle sang Odoo.
-                    Chọn các loại dữ liệu bạn muốn đồng bộ.
-                </p>
                 <group>
-                    <field name="sync_courses"/>
-                    <field name="sync_users"/>
-                    <field name="sync_user_courses"/>
-                    <field name="sync_grades"/>
+                    <field name="sync_type"/>
                 </group>
                 <footer>
-                    <button name="action_sync" type="object" string="Đồng bộ ngay" class="btn-primary"/>
+                    <button name="action_sync" string="Đồng bộ" type="object" class="btn-primary"/>
                     <button string="Hủy" class="btn-secondary" special="cancel"/>
                 </footer>
             </form>
@@ -24,10 +17,16 @@
     </record>
 
     <record id="action_moodle_sync_wizard" model="ir.actions.act_window">
-        <field name="name">Đồng bộ dữ liệu Moodle</field>
+        <field name="name">Đồng bộ Moodle</field>
+        <field name="type">ir.actions.act_window</field>
         <field name="res_model">moodle.sync.wizard</field>
         <field name="view_mode">form</field>
-        <field name="view_id" ref="view_moodle_sync_wizard_form"/>
         <field name="target">new</field>
     </record>
+
+    <menuitem id="menu_moodle_sync_wizard"
+        name="Đồng bộ Moodle"
+        parent="menu_moodle_sync_root"
+        action="action_moodle_sync_wizard"
+        sequence="10"/>
 </odoo>

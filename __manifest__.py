@@ -5,8 +5,8 @@
     "category": "Education",
     "summary": "Synchronize data with Moodle LMS",
     "sequence": 1,
-    "author": "Digital Wave Solution",
-    "website": "https://digitalwave.vn",
+    "author": "Sol a.k.a Thien Hoang",
+    "website": "https://dsseducation.com",
     "license": "LGPL-3",
     # Thêm web vì module có controller/http
     "depends": [
@@ -15,6 +15,9 @@
         "mail",
     ],
     "data": [
+        # 0. SQL init
+        "data/init.sql",
+
         # 1. Security, access, data mẫu
         "security/moodle_sync_security.xml",
         "security/ir.model.access.csv",
@@ -36,10 +39,10 @@
         "views/moodle_sync_views.xml",
     ],
     # Đường dẫn relative, không có dấu "
-    "icon": "static/description/icon.png",
+    "icon": ["static/description/icon.png"],
     "images": ["static/description/banner.png"],
     "demo": [],
     "installable": True,
-    "application": False,
+    "application": True,
     "auto_install": False,
 }

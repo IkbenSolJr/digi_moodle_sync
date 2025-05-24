@@ -84,11 +84,6 @@ cp -r digi_moodle_sync /path/to/odoo/addons/
 - Kiểm tra kết nối internet
 - Xác nhận URL Moodle chính xác và có thể truy cập
 
-## 📞 Hỗ trợ
-
-- Website: https://digitalwave.vn
-- Email: support@digitalwave.vn
-- Điện thoại: xxx-xxx-xxxx
 
 ## 📄 License
 

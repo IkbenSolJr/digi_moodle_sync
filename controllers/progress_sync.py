@@ -26,6 +26,7 @@ class MoodleProgressSync(http.Controller):
         users = request.env['res.users'].search([('moodle_id', '!=', False)])
 
         for course in courses:
+            _logger.info(f"Syncing progress for course: {course.name} (ID: {course.moodle_id})")
             for user in users:
                 params = {
                     'wstoken': config['token'],
@@ -40,29 +41,45 @@ class MoodleProgressSync(http.Controller):
                     response.raise_for_status()
                     data = response.json()
 
-                    if 'statuses' in data:
-                        for activity in data['statuses']:
-                            vals = {
-                                'userid': user.id,
-                                'courseid': course.id,
-                                'cmid': activity['cmid'],
-                                'activity_name': activity.get('activityname', ''),
-                                'completionstate': str(activity['completionstate']),
-                                'timemodified': activity.get('timemodified')
-                            }
+                    # Log raw response for debugging
+                    _logger.info(f"Raw response for user {user.name} in course {course.name}: {data}")
 
-                            # Create or update progress
-                            progress = request.env['moodle.activity.progress'].sudo().search([
-                                ('userid', '=', user.id),
-                                ('courseid', '=', course.id),
-                                ('cmid', '=', activity['cmid'])
-                            ])
+                    # Check for Moodle API errors
+                    if 'exception' in data:
+                        _logger.error(f"Moodle API error for user {user.name} in course {course.name}: {data.get('message', 'Unknown error')}")
+                        continue
 
-                            if progress:
-                                progress.write(vals)
-                            else:
-                                request.env['moodle.activity.progress'].sudo().create(vals)
+                    if 'statuses' not in data:
+                        _logger.warning(f"No completion statuses found for user {user.name} in course {course.name}")
+                        continue
 
+                    for activity in data['statuses']:
+                        vals = {
+                            'userid': user.id,
+                            'courseid': course.id,
+                            'cmid': activity['cmid'],
+                            'activity_name': activity.get('activityname', ''),
+                            'completionstate': str(activity['completionstate']),
+                            'timemodified': activity.get('timemodified')
+                        }
+
+                        # Create or update progress
+                        progress = request.env['moodle.activity.progress'].sudo().search([
+                            ('userid', '=', user.id),
+                            ('courseid', '=', course.id),
+                            ('cmid', '=', activity['cmid'])
+                        ])
+
+                        if progress:
+                            progress.write(vals)
+                            _logger.info(f"Updated progress for activity {activity.get('activityname')} - User: {user.name}")
+                        else:
+                            request.env['moodle.activity.progress'].sudo().create(vals)
+                            _logger.info(f"Created progress for activity {activity.get('activityname')} - User: {user.name}")
+
+                except requests.exceptions.RequestException as e:
+                    _logger.error(f"HTTP Error syncing progress for user {user.name} in course {course.name}: {str(e)}")
+                    continue
                 except Exception as e:
                     _logger.error(f"Error syncing progress for user {user.name} in course {course.name}: {str(e)}")
                     continue

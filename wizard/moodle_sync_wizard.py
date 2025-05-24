@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
 import requests
-from odoo import models, fields, api, _
+from odoo import api, fields, models, _
 from odoo.exceptions import UserError
 from datetime import datetime
 
@@ -22,8 +22,8 @@ class MoodleSyncWizard(models.TransientModel):
     def _get_moodle_config(self):
         params = self.env['ir.config_parameter'].sudo()
         return {
-            'token': params.get_param('moodle.wstoken'),
-            'url': params.get_param('moodle.url')
+            'token': params.get_param('digi_moodle_sync.token'),
+            'url': params.get_param('digi_moodle_sync.moodle_url')
         }
 
     def action_sync(self):
@@ -39,6 +39,9 @@ class MoodleSyncWizard(models.TransientModel):
                     'sticky': False,
                 }
             }
+
+        # Sync users first
+        self._sync_users(config)
 
         if self.sync_type in ['activity', 'all']:
             self._sync_activities(config)
@@ -59,6 +62,65 @@ class MoodleSyncWizard(models.TransientModel):
                 'sticky': False,
             }
         }
+
+    def _sync_users(self, config):
+        """Đồng bộ người dùng từ Moodle sang Odoo"""
+        params = {
+            'wstoken': config['token'],
+            'wsfunction': 'core_user_get_users',
+            'criteria[0][key]': 'email',
+            'criteria[0][value]': '%',  # Lấy tất cả người dùng
+            'moodlewsrestformat': 'json'
+        }
+
+        try:
+            response = requests.get(f"{config['url']}/webservice/rest/server.php", params=params)
+            response.raise_for_status()
+            data = response.json()
+
+            if isinstance(data, dict) and 'users' in data:
+                for user_data in data['users']:
+                    email = user_data.get('email')
+                    if not email:
+                        continue
+
+                    # Tìm user trong Odoo bằng email
+                    user = self.env['res.users'].search([('login', '=', email)], limit=1)
+                    
+                    if user:
+                        # Cập nhật moodle_id cho user hiện có
+                        user.write({
+                            'moodle_id': user_data.get('id'),
+                            'name': f"{user_data.get('firstname', '')} {user_data.get('lastname', '')}".strip()
+                        })
+                    else:
+                        # Tạo partner và user mới
+                        try:
+                            # Tạo partner trước
+                            partner_vals = {
+                                'name': f"{user_data.get('firstname', '')} {user_data.get('lastname', '')}".strip(),
+                                'email': email,
+                                'company_id': self.env.company.id,
+                            }
+                            partner = self.env['res.partner'].create(partner_vals)
+
+                            # Tạo user mới
+                            user_vals = {
+                                'login': email,
+                                'partner_id': partner.id,
+                                'company_id': self.env.company.id,
+                                'company_ids': [(4, self.env.company.id)],
+                                'moodle_id': user_data.get('id'),
+                                'groups_id': [(4, self.env.ref('base.group_user').id)],  # Thêm vào nhóm Internal User
+                            }
+                            new_user = self.env['res.users'].with_context(no_reset_password=True).create(user_vals)
+                            _logger.info(f"Đã tạo người dùng mới: {email}")
+
+                        except Exception as e:
+                            _logger.error(f"Lỗi khi tạo người dùng {email}: {str(e)}")
+
+        except Exception as e:
+            _logger.error(f"Lỗi khi đồng bộ người dùng từ Moodle: {str(e)}")
 
     def _sync_activities(self, config):
         courses = self.env['moodle.course'].search([])
@@ -200,36 +262,36 @@ class MoodleSyncWizard(models.TransientModel):
             }
 
             try:
-                response = requests.get(config['url'] + '/webservice/rest/server.php', params=params)
+                response = requests.get(f"{config['url']}/webservice/rest/server.php", params=params)
                 response.raise_for_status()
                 data = response.json()
 
-                teachers = [user for user in data if any(role['roleid'] == 3 for role in user.get('roles', []))]
+                _logger.info(f"Syncing teachers for course {course.name}")
+                _logger.info(f"Found {len(data)} enrolled users")
 
-                for teacher in teachers:
-                    user = self.env['res.users'].search([
-                        ('moodle_id', '=', teacher['id'])
-                    ])
-                    
-                    if not user:
-                        continue
+                if isinstance(data, list):
+                    for user_data in data:
+                        roles = user_data.get('roles', [])
+                        if isinstance(roles, list) and any(role.get('roleid') == 3 for role in roles):  # 3 is teacher role
+                            user = self.env['res.users'].search([('moodle_id', '=', user_data.get('id'))], limit=1)
+                            if not user:
+                                continue
 
-                    vals = {
-                        'user_id': user.id,
-                        'course_id': course.id,
-                        'fullname': teacher['fullname'],
-                        'email': teacher.get('email', '')
-                    }
+                            vals = {
+                                'course_id': course.id,
+                                'user_id': user.id,
+                                'moodle_id': user_data.get('id')
+                            }
 
-                    teacher_record = self.env['moodle.course.teacher'].search([
-                        ('user_id', '=', user.id),
-                        ('course_id', '=', course.id)
-                    ])
+                            teacher = self.env['moodle.course.teacher'].search([
+                                ('course_id', '=', course.id),
+                                ('user_id', '=', user.id)
+                            ])
 
-                    if teacher_record:
-                        teacher_record.write(vals)
-                    else:
-                        self.env['moodle.course.teacher'].create(vals)
+                            if teacher:
+                                teacher.write(vals)
+                            else:
+                                self.env['moodle.course.teacher'].create(vals)
 
             except Exception as e:
-                _logger.error(f"Error syncing teachers for course {course.name}: {str(e)}")
+                _logger.error(f"Error syncing teachers for course {course.name}: {str(e)}") 
