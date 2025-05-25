@@ -8,7 +8,7 @@ class MoodleUserCourse(models.Model):
 
     moodle_course_id  = fields.Integer(
         "Moodle Course ID", required=True, index=True)
-    user_id           = fields.Many2one(
+    moodle_user_id    = fields.Many2one(
         'moodle.user', "Moodle User", required=True, ondelete='cascade', index=True)
     course_name       = fields.Char("Course Name", required=True)
     course_shortname  = fields.Char("Course Short Name", required=True)
@@ -23,6 +23,6 @@ class MoodleUserCourse(models.Model):
 
     _sql_constraints = [
         ('unique_moodle_course_user',
-         'unique(moodle_course_id,user_id)',
-         'Khóa học này đã được gán cho người dùng rồi!')
+         'unique(moodle_course_id,moodle_user_id)',
+         'Khóa học này đã được gán cho người dùng Moodle này rồi!')
     ]

@@ -2,6 +2,7 @@ import requests
 from odoo import http
 from odoo.http import request
 import logging
+from datetime import datetime
 
 _logger = logging.getLogger(__name__)
 
@@ -13,18 +14,22 @@ class MoodleTeacherSync(http.Controller):
         
         # Get parameters with correct names from your system
         token = params.get_param('digi_moodle_sync.token')
-        url = params.get_param('digi_moodle_sync.moodle_url')
+        moodle_url = params.get_param('digi_moodle_sync.moodle_url')
         
-        # Clean URL (remove trailing slash)
-        if url:
-            url = url.rstrip('/')
+        # Clean URL (remove trailing slash) and add API endpoint
+        if moodle_url:
+            moodle_url = moodle_url.rstrip('/')
+            api_url = f"{moodle_url}/webservice/rest/server.php"
+        else:
+            api_url = None
         
         # Log for debugging
-        _logger.info(f"Moodle Config - Token: {'Found' if token else 'Missing'}, URL: {'Found' if url else 'Missing'}")
+        _logger.info(f"Moodle Config - Token: {'Found' if token else 'Missing'}, URL: {api_url}")
         
         return {
             'token': token,
-            'url': url
+            'url': moodle_url,
+            'api_url': api_url
         }
 
     @http.route('/moodle/sync/teachers', type='http', auth='user')
@@ -59,13 +64,9 @@ class MoodleTeacherSync(http.Controller):
             }
 
             try:
-                response = requests.get(config['url'] + '/webservice/rest/server.php', params=params, timeout=30)
+                response = requests.get(config['api_url'], params=params, timeout=30)
                 response.raise_for_status()
                 data = response.json()
-
-                # Log raw response for debugging (only for first course to avoid spam)
-                if total_teachers_synced == 0:
-                    _logger.info(f"Raw enrolled users data for course {course.name}: {data}")
 
                 # Check for Moodle API errors
                 if isinstance(data, dict) and 'exception' in data:
@@ -92,20 +93,56 @@ class MoodleTeacherSync(http.Controller):
                 _logger.info(f"Found {len(teachers)} teachers for course {course.name}")
 
                 course_teachers_synced = 0
+                MoodleUser = request.env['moodle.user'].sudo()
+                
                 for teacher in teachers:
-                    # Find or create user in Odoo
-                    user = request.env['res.users'].search([
-                        ('moodle_id', '=', teacher['id'])
-                    ])
+                    moodle_id = teacher.get('id')
+                    if not moodle_id:
+                        _logger.warning("Teacher without Moodle ID, skipping")
+                        continue
+                
+                    # Tìm hoặc tạo moodle.user
+                    moodle_user = MoodleUser.search([('moodle_id', '=', moodle_id)], limit=1)
+                    if not moodle_user:
+                        # Tạo moodle.user
+                        moodle_user = MoodleUser.create({
+                            'name': teacher.get('fullname'),
+                            'login': teacher.get('username', ''),
+                            'email': teacher.get('email', ''),
+                            'moodle_id': moodle_id,
+                            'last_sync_date': datetime.now(),
+                        })
+                        
+                    # Tìm hoặc liên kết với res.users
+                    user = request.env['res.users'].sudo().search([
+                        ('moodle_id', '=', moodle_id)
+                    ], limit=1)
                     
                     if not user:
-                        _logger.warning(f"User with Moodle ID {teacher['id']} not found for teacher {teacher.get('fullname', 'Unknown')}")
+                        # Tìm theo email
+                        email = teacher.get('email')
+                        if email:
+                            user = request.env['res.users'].sudo().search([
+                                ('email', '=', email)
+                            ], limit=1)
+                            
+                            if user:
+                                # Cập nhật moodle_id
+                                user.write({'moodle_id': moodle_id})
+                                moodle_user.write({'odoo_user_id': user.id})
+                                
+                    if not user and moodle_user:
+                        # Tạo Odoo user từ moodle user
+                        user = moodle_user.find_or_create_odoo_user()
+
+                    if not user:
+                        _logger.warning(f"Couldn't find or create user for teacher {teacher.get('fullname', 'Unknown')}")
                         continue
 
                     vals = {
                         'user_id': user.id,
                         'course_id': course.id,
-                        'fullname': teacher['fullname'],
+                        'fullname': teacher.get('fullname', ''),
                         'email': teacher.get('email', '')
                     }
 
@@ -113,14 +150,14 @@ class MoodleTeacherSync(http.Controller):
                     teacher_record = request.env['moodle.course.teacher'].sudo().search([
                         ('user_id', '=', user.id),
                         ('course_id', '=', course.id)
-                    ])
+                    ], limit=1)
 
                     if teacher_record:
                         teacher_record.write(vals)
-                        _logger.info(f"Updated teacher record for {teacher['fullname']} in course {course.name}")
+                        _logger.info(f"Updated teacher record for {teacher.get('fullname', '')} in course {course.name}")
                     else:
                         request.env['moodle.course.teacher'].sudo().create(vals)
-                        _logger.info(f"Created teacher record for {teacher['fullname']} in course {course.name}")
+                        _logger.info(f"Created teacher record for {teacher.get('fullname', '')} in course {course.name}")
 
                     course_teachers_synced += 1
 

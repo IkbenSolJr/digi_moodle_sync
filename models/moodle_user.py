@@ -32,6 +32,9 @@ class MoodleUser(models.Model):
         if not user:
             user = User.search([('email','=', self.email)], limit=1)
         if user:
+            # Cập nhật moodle_id nếu chưa có
+            if not user.moodle_id and self.moodle_id:
+                user.write({'moodle_id': self.moodle_id})
             self.odoo_user_id = user.id
             return user
         # chưa có => tạo mới
@@ -39,6 +42,7 @@ class MoodleUser(models.Model):
             'name':  self.name,
             'login': self.login,
             'email': self.email,
+            'moodle_id': self.moodle_id,  # Thêm Moodle ID
         }
         try:
             new_user = User.create(vals)

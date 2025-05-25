@@ -2,6 +2,7 @@ import requests
 from odoo import http
 from odoo.http import request
 import logging
+from datetime import datetime
 
 _logger = logging.getLogger(__name__)
 
@@ -13,18 +14,22 @@ class MoodleAssignmentSync(http.Controller):
         
         # Get parameters with correct names from your system
         token = params.get_param('digi_moodle_sync.token')
-        url = params.get_param('digi_moodle_sync.moodle_url')
+        moodle_url = params.get_param('digi_moodle_sync.moodle_url')
         
-        # Clean URL (remove trailing slash)
-        if url:
-            url = url.rstrip('/')
+        # Clean URL (remove trailing slash) and add API endpoint
+        if moodle_url:
+            moodle_url = moodle_url.rstrip('/')
+            api_url = f"{moodle_url}/webservice/rest/server.php"
+        else:
+            api_url = None
         
         # Log for debugging
-        _logger.info(f"Moodle Config - Token: {'Found' if token else 'Missing'}, URL: {'Found' if url else 'Missing'}")
+        _logger.info(f"Moodle Config - Token: {'Found' if token else 'Missing'}, URL: {api_url}")
         
         return {
             'token': token,
-            'url': url
+            'url': moodle_url,
+            'api_url': api_url
         }
 
     @http.route('/moodle/sync/assignments', type='http', auth='user')
@@ -56,12 +61,13 @@ class MoodleAssignmentSync(http.Controller):
             }
 
             try:
-                response = requests.get(config['url'] + '/webservice/rest/server.php', params=params, timeout=30)
+                response = requests.get(config['api_url'], params=params, timeout=30)
+                if response.status_code != 200:
+                    _logger.error(f"API error: status {response.status_code}, response: {response.text[:200]}")
+                    continue
+                    
                 response.raise_for_status()
                 data = response.json()
-
-                # Log raw response for debugging
-                _logger.info(f"Raw assignment data for course {course.name}: {data}")
 
                 # Check for Moodle API errors
                 if 'exception' in data:
@@ -89,7 +95,7 @@ class MoodleAssignmentSync(http.Controller):
                         # Create or update assignment
                         assign = request.env['moodle.assignment'].sudo().search([
                             ('moodle_id', '=', assignment['id'])
-                        ])
+                        ], limit=1)
 
                         if assign:
                             assign.write(vals)
@@ -131,12 +137,13 @@ class MoodleAssignmentSync(http.Controller):
         }
 
         try:
-            response = requests.get(config['url'] + '/webservice/rest/server.php', params=params, timeout=30)
+            response = requests.get(config['api_url'], params=params, timeout=30)
+            if response.status_code != 200:
+                _logger.error(f"API error: status {response.status_code}, response: {response.text[:200]}")
+                return
+                
             response.raise_for_status()
             data = response.json()
-
-            # Log raw response for debugging
-            _logger.info(f"Raw submission data for assignment {assignment.name}: {data}")
 
             # Check for Moodle API errors
             if 'exception' in data:
@@ -147,6 +154,7 @@ class MoodleAssignmentSync(http.Controller):
                 _logger.warning(f"No submissions found for assignment {assignment.name} - 'assignments' key missing in response")
                 return
 
+            MoodleUser = request.env['moodle.user'].sudo()
             submissions_synced = 0
             for assign_data in data['assignments']:
                 if 'submissions' not in assign_data:
@@ -154,11 +162,43 @@ class MoodleAssignmentSync(http.Controller):
                     continue
 
                 for submission in assign_data['submissions']:
-                    user = request.env['res.users'].search([
-                        ('moodle_id', '=', submission['userid'])
-                    ])
+                    moodle_user_id = submission.get('userid')
+                    if not moodle_user_id:
+                        _logger.warning(f"Submission without user ID in assignment {assignment.name}")
+                        continue
+                        
+                    # Tìm hoặc tạo moodle.user
+                    moodle_user = MoodleUser.search([('moodle_id', '=', moodle_user_id)], limit=1)
+                    if not moodle_user:
+                        # Tìm user từ res.users
+                        res_user = request.env['res.users'].sudo().search([
+                            ('moodle_id', '=', moodle_user_id)
+                        ], limit=1)
+                        if res_user:
+                            # Tạo moodle.user từ res.users
+                            moodle_user = MoodleUser.create({
+                                'name': res_user.name,
+                                'login': res_user.login,
+                                'email': res_user.email or '',
+                                'moodle_id': moodle_user_id,
+                                'odoo_user_id': res_user.id,
+                                'last_sync_date': datetime.now(),
+                            })
+                        else:
+                            _logger.warning(f"User with Moodle ID {moodle_user_id} not found for submission in assignment {assignment.name}")
+                            continue
+                        
+                    # Lấy Odoo user từ moodle.user hoặc trực tiếp
+                    user = None
+                    if moodle_user.odoo_user_id:
+                        user = moodle_user.odoo_user_id
+                    else:
+                        user = request.env['res.users'].sudo().search([
+                            ('moodle_id', '=', moodle_user_id)
+                        ], limit=1)
+                    
                     if not user:
-                        _logger.warning(f"User with Moodle ID {submission['userid']} not found for submission in assignment {assignment.name}")
+                        _logger.warning(f"Cannot find or create Odoo user for Moodle ID {moodle_user_id}")
                         continue
 
                     vals = {
@@ -173,7 +213,7 @@ class MoodleAssignmentSync(http.Controller):
                     sub = request.env['moodle.assignment.submission'].sudo().search([
                         ('assignment_id', '=', assignment.id),
                         ('user_id', '=', user.id)
-                    ])
+                    ], limit=1)
 
                     if sub:
                         sub.write(vals)

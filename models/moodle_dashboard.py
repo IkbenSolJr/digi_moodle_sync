@@ -44,13 +44,103 @@ class MoodleDashboard(models.TransientModel):
         self.connection_state = 'connected' if token else 'disconnected'
 
     def _compute_charts(self):
-        # Tương tự như cũ, chỉ đảm bảo không dùng tham số cũ
-        # ... (giữ nguyên logic JSON của bạn) ...
-        pass
+        # Tạo dữ liệu biểu đồ đơn giản
+        self.enrollments_chart = json.dumps({
+            'data': [
+                {'label': 'Đang học', 'value': self.env['moodle.user.course'].search_count([('completion_state', '=', 'in_progress')])},
+                {'label': 'Hoàn thành', 'value': self.env['moodle.user.course'].search_count([('completion_state', '=', 'completed')])},
+                {'label': 'Chưa bắt đầu', 'value': self.env['moodle.user.course'].search_count([('completion_state', '=', 'not_started')])}
+            ]
+        })
+        
+        # Dữ liệu điểm số
+        self.grades_chart = json.dumps({
+            'data': [
+                {'label': 'Đạt', 'value': self.env['moodle.user.grade'].search_count([('grade', '>=', 5)])},
+                {'label': 'Chưa đạt', 'value': self.env['moodle.user.grade'].search_count([('grade', '<', 5)])}
+            ]
+        })
 
     # hành động mở form/list
-    def action_view_courses(self): ...
-    def action_view_users(self): ...
-    def action_view_enrollments(self): ...
-    def action_view_grades(self): ...
-    def action_test_connection(self): ...
+    def action_view_courses(self): 
+        return self.env["ir.actions.actions"]._for_xml_id("digi_moodle_sync.action_moodle_course")
+    
+    def action_view_users(self): 
+        return self.env["ir.actions.actions"]._for_xml_id("digi_moodle_sync.action_moodle_user")
+    
+    def action_view_enrollments(self): 
+        return self.env["ir.actions.actions"]._for_xml_id("digi_moodle_sync.action_moodle_user_course")
+    
+    def action_view_grades(self): 
+        return self.env["ir.actions.actions"]._for_xml_id("digi_moodle_sync.action_moodle_user_grade")
+    
+    def action_test_connection(self):
+        import requests
+        
+        config = self.env['ir.config_parameter'].sudo()
+        moodle_url = config.get_param('digi_moodle_sync.moodle_url')
+        token = config.get_param('digi_moodle_sync.token')
+        
+        if not moodle_url or not token:
+            return {
+                'type': 'ir.actions.client',
+                'tag': 'display_notification',
+                'params': {
+                    'title': _('Lỗi cấu hình'),
+                    'message': _('Vui lòng cấu hình URL Moodle và token trước'),
+                    'sticky': False,
+                    'type': 'danger'
+                }
+            }
+        
+        # Thêm /webservice/rest/server.php vào URL
+        api_url = moodle_url
+        if not api_url.endswith('/'):
+            api_url += '/'
+        api_url += 'webservice/rest/server.php'
+        
+        params = {
+            'wstoken': token,
+            'wsfunction': 'core_webservice_get_site_info',
+            'moodlewsrestformat': 'json'
+        }
+        
+        try:
+            resp = requests.get(api_url, params=params, timeout=10)
+            resp.raise_for_status()
+            data = resp.json()
+            
+            if 'sitename' in data:
+                config.set_param('digi_moodle_sync.last_sync_date', fields.Datetime.now())
+                return {
+                    'type': 'ir.actions.client',
+                    'tag': 'display_notification',
+                    'params': {
+                        'title': _('Kết nối thành công'),
+                        'message': _('Đã kết nối với: %s') % data.get('sitename', ''),
+                        'sticky': False,
+                        'type': 'success'
+                    }
+                }
+            else:
+                return {
+                    'type': 'ir.actions.client',
+                    'tag': 'display_notification',
+                    'params': {
+                        'title': _('Lỗi'),
+                        'message': _('Phản hồi không hợp lệ từ Moodle'),
+                        'sticky': False,
+                        'type': 'danger'
+                    }
+                }
+        except Exception as e:
+            return {
+                'type': 'ir.actions.client',
+                'tag': 'display_notification',
+                'params': {
+                    'title': _('Lỗi kết nối'),
+                    'message': str(e),
+                    'sticky': False,
+                    'type': 'danger'
+                }
+            }

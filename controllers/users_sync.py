@@ -2,6 +2,7 @@
 import logging
 import requests
 import json
+from datetime import datetime
 
 from odoo import http
 from odoo.http import request
@@ -16,6 +17,12 @@ class MoodleUserSyncController(http.Controller):
         moodle_url = config.get_param('digi_moodle_sync.moodle_url')
         token      = config.get_param('digi_moodle_sync.token')
 
+        # Thêm /webservice/rest/server.php vào URL
+        api_url = moodle_url
+        if not api_url.endswith('/'):
+            api_url += '/'
+        api_url += 'webservice/rest/server.php'
+
         params = {
             'wstoken':            token,
             'wsfunction':         'core_user_get_users',
@@ -24,7 +31,8 @@ class MoodleUserSyncController(http.Controller):
             'criteria[0][value]': '%'
         }
         try:
-            resp = requests.get(moodle_url, params=params, timeout=15)
+            _logger.info("Calling Moodle API: %s", api_url)
+            resp = requests.get(api_url, params=params, timeout=15)
             resp.raise_for_status()
             data = resp.json()
 
@@ -35,7 +43,8 @@ class MoodleUserSyncController(http.Controller):
                     headers=[('Content-Type','application/json')])
 
             User = request.env['res.users'].sudo()
-            existing = {u.email for u in User.search([]) if u.email}
+            MoodleUser = request.env['moodle.user'].sudo()
+            existing = {u.email: u for u in User.search([]) if u.email}
             created = updated = 0
 
             for u in data['users']:
@@ -43,22 +52,48 @@ class MoodleUserSyncController(http.Controller):
                 if not email:
                     continue
 
+                moodle_id = u.get('id')
+                if not moodle_id:
+                    _logger.warning("Moodle user without ID: %s", email)
+                    continue
+
                 vals = {
                     'name':  u.get('fullname'),
                     'login': u.get('username'),
+                    'moodle_id': moodle_id,  # Lưu Moodle ID
                 }
+                
                 if email in existing:
-                    user = User.search([('email','=', email)], limit=1)
-                    if user:
-                        user.write(vals)
-                        updated += 1
+                    user = existing[email]
+                    user.write(vals)
+                    updated += 1
                 else:
                     vals.update({
                         'email':      email,
                         'company_id': request.env.user.company_id.id,
                     })
-                    User.create(vals)
+                    user = User.create(vals)
                     created += 1
+
+                # Đồng bộ với bảng moodle.user
+                moodle_user = MoodleUser.search([('moodle_id', '=', moodle_id)], limit=1)
+                if moodle_user:
+                    moodle_user.write({
+                        'name': u.get('fullname'),
+                        'login': u.get('username'),
+                        'email': email,
+                        'odoo_user_id': user.id,
+                        'last_sync_date': datetime.now(),
+                    })
+                else:
+                    MoodleUser.create({
+                        'name': u.get('fullname'),
+                        'login': u.get('username'),
+                        'email': email,
+                        'moodle_id': moodle_id,
+                        'odoo_user_id': user.id,
+                        'last_sync_date': datetime.now(),
+                    })
 
             _logger.info("Users sync: %d created, %d updated", created, updated)
             return request.make_response(

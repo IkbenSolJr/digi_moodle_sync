@@ -1,90 +1,75 @@
 # Digi Moodle Sync
 
-Module đồng bộ dữ liệu giữa Odoo 15 và Moodle LMS thông qua REST API.
+> **Module đồng bộ dữ liệu Moodle với Odoo 15.0**
 
-## 🌟 Tính năng
+## Tổng quan
 
-### 1. Đồng bộ tiến độ học tập
-- Lấy trạng thái hoàn thành các hoạt động trong khóa học
-- Theo dõi tiến độ của từng học viên
-- API sử dụng: `core_completion_get_activities_completion_status`
+Module này kết nối Odoo với hệ thống học trực tuyến Moodle, đồng bộ thông tin người dùng, khóa học, điểm số và bài tập.
 
-### 2. Đồng bộ bài tập
-- Lấy danh sách bài tập từ các khóa học
-- Thông tin bài tập: tên, ngày hết hạn, khóa học
-- API sử dụng: `mod_assign_get_assignments`
+## Các tính năng
 
-### 3. Đồng bộ bài nộp
-- Lấy danh sách bài nộp của học viên
-- Thông tin bài nộp: trạng thái, điểm số, ngày nộp
-- API sử dụng: `mod_assign_get_submissions`
+- Đồng bộ người dùng (học viên, giảng viên) từ Moodle sang Odoo
+- Đồng bộ thông tin khóa học
+- Đồng bộ kết quả học tập và điểm số
+- Đồng bộ thông tin bài tập và bài nộp
 
-### 4. Đồng bộ giáo viên
-- Lấy danh sách giáo viên của từng khóa học
-- Thông tin giáo viên: họ tên, email
-- API sử dụng: `core_enrol_get_enrolled_users`
+## Cấu hình
 
-## 🛠 Cài đặt
+1. Cài đặt module
+2. Truy cập **Moodle Sync > Cấu hình**
+3. Nhập các thông số:
+   - Moodle URL: Địa chỉ URL gốc của trang Moodle (VD: https://moodle.example.com)
+   - Moodle Token: Token webservice để truy cập API
+4. Lưu cấu hình và kiểm tra kết nối
 
-1. Cài đặt module:
-```bash
-# Copy module vào thư mục addons
-cp -r digi_moodle_sync /path/to/odoo/addons/
+## Các thay đổi quan trọng đã cập nhật:
 
-# Cập nhật danh sách module
-./odoo-bin -d your_database -u digi_moodle_sync
-```
+1. **Thống nhất URL Moodle**
+   - Cập nhật để chỉ lưu URL gốc (domain hoặc thư mục gốc) trong trường `moodle_url`
+   - Tất cả API call đều tự động thêm `/webservice/rest/server.php` vào URL trước khi gửi request
 
-2. Cấu hình kết nối Moodle:
-- Vào **Settings > Technical > Parameters > System Parameters**
-- Thêm các thông số:
-  - `moodle.wstoken`: Token xác thực Moodle Web Service
-  - `moodle.url`: URL của server Moodle
+2. **Đồng bộ và lưu trữ Moodle ID**
+   - Đảm bảo `moodle_id` được lưu vào `res.users` khi nhận kết quả từ API
+   - Khi tạo user mới, luôn thêm `moodle_id` vào vals trước khi create()
 
-## 📝 Hướng dẫn sử dụng
+3. **Sử dụng đúng ID Moodle khi gọi API**
+   - Trong các hàm đồng bộ, sử dụng `user.moodle_id` thay vì `user.id` để truyền vào tham số `userid`
+   - Đảm bảo có bản ghi `moodle.user` tương ứng trước khi tạo bản ghi con
 
-### Đồng bộ dữ liệu
-1. Vào menu **Moodle Sync**
-2. Click nút **Sync with Moodle**
-3. Chọn loại dữ liệu cần đồng bộ:
-   - Activity Progress: Tiến độ hoạt động
-   - Assignments: Bài tập
-   - Assignment Submissions: Bài nộp
-   - Course Teachers: Giáo viên
-   - All Data: Tất cả dữ liệu
-4. Click **Sync** để bắt đầu đồng bộ
+4. **Đồng bộ mô hình dữ liệu**
+   - Đảm bảo quan hệ Many2one chỉ đến mô hình đúng
+   - Đổi tên field `user_id` thành `moodle_user_id` trong các mô hình liên quan
+
+5. **Hiệu chỉnh chức năng Dashboard**
+   - Cập nhật các action view để mở đúng view tương ứng
+   - Triển khai kiểm thử kết nối
+   - Tạo biểu đồ thống kê đơn giản
+
+6. **Nâng cao xử lý ngoại lệ**
+   - Thêm logging chi tiết cho từng API call
+   - Kiểm tra HTTP status và nội dung trả về
+   - Bổ sung try/except để không làm sập cron/job
+
+## Hướng dẫn sử dụng
+
+### Đồng bộ thông tin
+
+1. **Đồng bộ người dùng**: `/moodle/sync_users`
+2. **Đồng bộ khóa học**: `/moodle/sync_courses`
+3. **Đồng bộ điểm số**: `/moodle/sync_courses_grades?userid=X`
+4. **Đồng bộ giảng viên**: `/moodle/sync/teachers`
+5. **Đồng bộ bài tập**: `/moodle/sync/assignments`
 
 ### Xem dữ liệu
-- **Activity Progress**: Xem tiến độ hoạt động của học viên
-- **Assignments**: Xem danh sách bài tập
-- **Assignment Submissions**: Xem bài nộp và điểm số
-- **Course Teachers**: Xem danh sách giáo viên theo khóa học
 
-## 🔧 Yêu cầu kỹ thuật
+Truy cập từ menu **Moodle Sync > Dashboard** để xem tổng quan và truy cập các dữ liệu đã đồng bộ.
 
-- Odoo 15.0
-- Python 3.7+
-- Moodle 3.9+ với Web Services được kích hoạt
-- Các API Moodle cần được bật:
-  - core_completion_get_activities_completion_status
-  - mod_assign_get_assignments
-  - mod_assign_get_submissions
-  - core_enrol_get_enrolled_users
+## Lưu ý
 
-## 🔒 Bảo mật
+- Cần có quyền admin trên Moodle để tạo token với đầy đủ quyền truy cập API
+- Chức năng đồng bộ nên được lên lịch chạy định kỳ để dữ liệu luôn cập nhật
+- Kiểm tra log khi có lỗi (từ menu **Cài đặt > Kỹ thuật > Logs**)
 
-- Token Moodle cần có quyền truy cập các API được sử dụng
-- Chỉ admin có quyền cấu hình kết nối
-- Dữ liệu được đồng bộ theo phân quyền của người dùng
+---
 
-## 🐛 Xử lý lỗi
-
-- Kiểm tra log trong Odoo để xem chi tiết lỗi
-- Đảm bảo token Moodle còn hiệu lực
-- Kiểm tra kết nối internet
-- Xác nhận URL Moodle chính xác và có thể truy cập
-
-
-## 📄 License
-
-LGPL-3 
+© 2023 Digital Service Solution Education (DSSE) 
