@@ -3,11 +3,22 @@ from odoo import http
 from odoo.http import request
 import logging
 from datetime import datetime
+from odoo.exceptions import AccessError
+import json
 
 _logger = logging.getLogger(__name__)
 
+MOODLE_SYNC_MANAGER_GROUP = 'digi_moodle_sync.group_manager'
+
 class MoodleTeacherSync(http.Controller):
     
+    def _check_access_rights(self):
+        if not request.env.user.has_group(MOODLE_SYNC_MANAGER_GROUP):
+            _logger.warning(
+                f"User {request.env.user.login} (ID: {request.env.user.id}) attempt to access Moodle Teacher Sync without proper rights."
+            )
+            raise AccessError("Bạn không có quyền thực hiện hành động này. Vui lòng liên hệ quản trị viên.")
+
     def _get_moodle_config(self):
         """Get Moodle configuration with correct parameter names"""
         params = request.env['ir.config_parameter'].sudo()
@@ -32,12 +43,23 @@ class MoodleTeacherSync(http.Controller):
             'api_url': api_url
         }
 
-    @http.route('/moodle/sync/teachers', type='http', auth='user')
+    @http.route('/moodle/sync/teachers', type='http', auth='user', csrf=False, methods=['GET'])
     def sync_teachers(self, **kwargs):
+        _logger.info(
+            f"Teacher Sync: User {request.env.user.login} (ID: {request.env.user.id}) initiated. Params: {kwargs}"
+        )
+        try:
+            self._check_access_rights()
+        except AccessError as e:
+            return request.make_response(
+                json.dumps({'error': str(e)}), 
+                status=403, 
+                headers=[('Content-Type', 'application/json')])
+
         config = self._get_moodle_config()
         if not config['token'] or not config['url']:
             _logger.error("Moodle configuration is missing - Token or URL not found")
-            return 'Moodle configuration is missing - check digi_moodle_sync.token and digi_moodle_sync.moodle_url parameters'
+            return request.make_response(json.dumps({'error': 'Moodle configuration is missing - check digi_moodle_sync.token and digi_moodle_sync.moodle_url parameters'}), status=503, headers=[('Content-Type', 'application/json')])
 
         _logger.info("Starting teacher synchronization...")
 
@@ -46,7 +68,7 @@ class MoodleTeacherSync(http.Controller):
         
         if not courses:
             _logger.warning("No courses found in Odoo")
-            return 'No courses found in Odoo database'
+            return request.make_response(json.dumps({'error': 'No courses found in Odoo database'}), status=200, headers=[('Content-Type', 'application/json')])
         
         # Define teacher role IDs (can be configured in Moodle settings)
         teacher_role_ids = [3, 4]  # 3: Teacher, 4: Non-editing teacher
@@ -143,7 +165,8 @@ class MoodleTeacherSync(http.Controller):
                         'user_id': user.id,
                         'course_id': course.id,
                         'fullname': teacher.get('fullname', ''),
-                        'email': teacher.get('email', '')
+                        'email': teacher.get('email', ''),
+                        'last_sync_date': datetime.now(),
                     }
 
                     # Create or update teacher record
@@ -154,10 +177,10 @@ class MoodleTeacherSync(http.Controller):
 
                     if teacher_record:
                         teacher_record.write(vals)
-                        _logger.info(f"Updated teacher record for {teacher.get('fullname', '')} in course {course.name}")
+                        _logger.debug(f"Updated teacher record for {teacher.get('fullname', '')} in course {course.name}")
                     else:
                         request.env['moodle.course.teacher'].sudo().create(vals)
-                        _logger.info(f"Created teacher record for {teacher.get('fullname', '')} in course {course.name}")
+                        _logger.debug(f"Created teacher record for {teacher.get('fullname', '')} in course {course.name}")
 
                     course_teachers_synced += 1
 
@@ -178,4 +201,6 @@ class MoodleTeacherSync(http.Controller):
                 continue
 
         _logger.info(f"Teacher synchronization completed - Total: {total_teachers_synced} teachers synced")
-        return f'Teacher sync completed successfully - {total_teachers_synced} teachers synced'
+        return request.make_response(json.dumps({
+            'message': f'Teacher sync completed successfully - {total_teachers_synced} teachers synced'
+        }), headers=[('Content-Type', 'application/json')])

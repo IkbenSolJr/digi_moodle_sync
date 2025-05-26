@@ -5,10 +5,11 @@ class MoodleCourseTeacher(models.Model):
     _description = 'Moodle Course Teacher'
     _rec_name = 'fullname'
 
-    user_id = fields.Many2one('res.users', string='User', required=True)
-    course_id = fields.Many2one('moodle.course', string='Course', required=True)
+    user_id = fields.Many2one('res.users', string='User', required=True, index=True)
+    course_id = fields.Many2one('moodle.course', string='Course', required=True, index=True)
     fullname = fields.Char(string='Full Name', required=True)
     email = fields.Char(string='Email')
+    last_sync_date = fields.Datetime("Last Synced")
 
     _sql_constraints = [
         ('unique_teacher_course', 

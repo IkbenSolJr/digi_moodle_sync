@@ -1,19 +1,21 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_moodle_activity_progress_user,moodle.activity.progress.user,digi_moodle_sync.model_moodle_activity_progress,base.group_user,1,0,0,0
+access_moodle_activity_progress_user,moodle.activity.progress.user,digi_moodle_sync.model_moodle_activity_progress,base.group_user,1,1,1,1
 access_moodle_activity_progress_admin,moodle.activity.progress.admin,digi_moodle_sync.model_moodle_activity_progress,base.group_system,1,1,1,1
-access_moodle_assignment_user,moodle.assignment.user,digi_moodle_sync.model_moodle_assignment,base.group_user,1,0,0,0
+access_moodle_assignment_user,moodle.assignment.user,digi_moodle_sync.model_moodle_assignment,base.group_user,1,1,1,1
 access_moodle_assignment_admin,moodle.assignment.admin,digi_moodle_sync.model_moodle_assignment,base.group_system,1,1,1,1
-access_moodle_assignment_submission_user,moodle.assignment.submission.user,digi_moodle_sync.model_moodle_assignment_submission,base.group_user,1,0,0,0
+access_moodle_assignment_submission_user,moodle.assignment.submission.user,digi_moodle_sync.model_moodle_assignment_submission,base.group_user,1,1,1,1
 access_moodle_assignment_submission_admin,moodle.assignment.submission.admin,digi_moodle_sync.model_moodle_assignment_submission,base.group_system,1,1,1,1
-access_moodle_course_teacher_user,moodle.course.teacher.user,digi_moodle_sync.model_moodle_course_teacher,base.group_user,1,0,0,0
+access_moodle_course_teacher_user,moodle.course.teacher.user,digi_moodle_sync.model_moodle_course_teacher,base.group_user,1,1,1,1
 access_moodle_course_teacher_admin,moodle.course.teacher.admin,digi_moodle_sync.model_moodle_course_teacher,base.group_system,1,1,1,1
-access_moodle_course_user,Moodle Course: user,digi_moodle_sync.model_moodle_course,digi_moodle_sync.group_digi_moodle_sync_user,1,0,0,0
+access_moodle_course_user,Moodle Course: user,digi_moodle_sync.model_moodle_course,base.group_user,1,1,1,1
 access_moodle_course_manager,Moodle Course: manager,digi_moodle_sync.model_moodle_course,digi_moodle_sync.group_digi_moodle_sync_manager,1,1,1,1
-access_moodle_user_user,Moodle User: user,digi_moodle_sync.model_moodle_user,digi_moodle_sync.group_digi_moodle_sync_user,1,0,0,0
+access_moodle_user_user,Moodle User: user,digi_moodle_sync.model_moodle_user,base.group_user,1,1,1,1
 access_moodle_user_manager,Moodle User: manager,digi_moodle_sync.model_moodle_user,digi_moodle_sync.group_digi_moodle_sync_manager,1,1,1,1
-access_moodle_user_course_user,Enrollment: user,digi_moodle_sync.model_moodle_user_course,digi_moodle_sync.group_digi_moodle_sync_user,1,0,0,0
+access_moodle_user_course_user,Enrollment: user,digi_moodle_sync.model_moodle_user_course,base.group_user,1,1,1,1
 access_moodle_user_course_manager,Enrollment: manager,digi_moodle_sync.model_moodle_user_course,digi_moodle_sync.group_digi_moodle_sync_manager,1,1,1,1
-access_moodle_user_grade_user,Grade: user,digi_moodle_sync.model_moodle_user_grade,digi_moodle_sync.group_digi_moodle_sync_user,1,0,0,0
+access_moodle_user_grade_user,Grade: user,digi_moodle_sync.model_moodle_user_grade,base.group_user,1,1,1,1
 access_moodle_user_grade_manager,Grade: manager,digi_moodle_sync.model_moodle_user_grade,digi_moodle_sync.group_digi_moodle_sync_manager,1,1,1,1
-access_moodle_sync_wizard_user,Sync Wizard: user,digi_moodle_sync.model_moodle_sync_wizard,digi_moodle_sync.group_digi_moodle_sync_user,1,0,0,0
+access_moodle_sync_wizard_user,Sync Wizard: user,digi_moodle_sync.model_moodle_sync_wizard,base.group_user,1,1,1,1
 access_moodle_sync_wizard_manager,Sync Wizard: manager,digi_moodle_sync.model_moodle_sync_wizard,digi_moodle_sync.group_digi_moodle_sync_manager,1,1,1,1
+access_moodle_sync_wizard_admin,Sync Wizard: admin,digi_moodle_sync.model_moodle_sync_wizard,base.group_system,1,1,1,1
+access_moodle_sync_wizard_all,Sync Wizard: all users,digi_moodle_sync.model_moodle_sync_wizard,,1,1,1,1

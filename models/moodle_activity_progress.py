@@ -5,9 +5,9 @@ class MoodleActivityProgress(models.Model):
     _description = 'Moodle Activity Progress'
     _rec_name = 'activity_name'
 
-    userid = fields.Many2one('res.users', string='User', required=True)
-    courseid = fields.Many2one('moodle.course', string='Course', required=True)
-    cmid = fields.Integer(string='Course Module ID', required=True)
+    userid = fields.Many2one('res.users', string='User', required=True, index=True)
+    courseid = fields.Many2one('moodle.course', string='Course', required=True, index=True)
+    cmid = fields.Integer(string='Course Module ID', required=True, index=True)
     activity_name = fields.Char(string='Activity Name')
     completionstate = fields.Selection([
         ('0', 'Not Completed'),
@@ -16,6 +16,7 @@ class MoodleActivityProgress(models.Model):
         ('3', 'Completed with Fail')
     ], string='Completion State', required=True)
     timemodified = fields.Datetime(string='Last Modified')
+    last_sync_date = fields.Datetime("Last Synced")
 
     _sql_constraints = [
         ('unique_activity_user', 

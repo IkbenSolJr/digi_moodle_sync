@@ -4,8 +4,8 @@ class MoodleAssignmentSubmission(models.Model):
     _name = 'moodle.assignment.submission'
     _description = 'Moodle Assignment Submission'
 
-    assignment_id = fields.Many2one('moodle.assignment', string='Assignment', required=True)
-    user_id = fields.Many2one('res.users', string='Student', required=True)
+    assignment_id = fields.Many2one('moodle.assignment', string='Assignment', required=True, index=True)
+    user_id = fields.Many2one('res.users', string='Student', required=True, index=True)
     status = fields.Selection([
         ('new', 'New'),
         ('submitted', 'Submitted'),
@@ -14,6 +14,7 @@ class MoodleAssignmentSubmission(models.Model):
     ], string='Status', required=True)
     timemodified = fields.Datetime(string='Last Modified')
     grade = fields.Float(string='Grade')
+    last_sync_date = fields.Datetime("Last Synced")
 
     _sql_constraints = [
         ('unique_submission', 
